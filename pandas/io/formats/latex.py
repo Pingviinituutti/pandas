@@ -200,6 +200,7 @@ class LatexFormatter(TableFormatter):
                 occurences.append([c,1])
         # construct row that is going to be LaTeXified
         cborders = []
+        err = 0
         for c, n in occurences:
             # if we have multicolumn
             if c and n > 1:
@@ -208,7 +209,7 @@ class LatexFormatter(TableFormatter):
                 # track the bottom borders that are going to be put under
                 # the multicolumns
                 cborders.append("\cmidrule(l){{{i:d}-{n:d}}}"
-                                      .format(i=len(row2),n=len(row2)-1+n))
+                                      .format(i=len(row2),n=len(row2)-1+n+err))
             else:
                 # just put the string or n times ''
                 row2 += [c] * n

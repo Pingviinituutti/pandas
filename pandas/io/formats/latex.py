@@ -54,6 +54,10 @@ class LatexFormatter(TableFormatter):
                                  idx=self.frame.index))
             strcols = [[info_line]]
         else:
+            if self.multicolumn or self.multirow:
+                # set sparsify to False so that we know which
+                # columns/rows to sum together
+                self.fmt.sparsify=False
             strcols = self.fmt._to_str_columns()
 
         def get_col_type(dtype):
@@ -177,36 +181,37 @@ class LatexFormatter(TableFormatter):
         will become
         \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
         """
+        # save the row headers in row2 because they are not involved in
+        # our multicolumn stuff
         row2 = list(row[:ilevels])
-        ncol = 1
-        coltext = ''
-
-        multicol_row = [(len(c) > 0 and len(c.strip()) == 0) for c in row]
-        tmp = []
-        skip_count = 0
-        bottom_borders = []
-        for i, mcol in enumerate(multicol_row):
-            if skip_count:
-                skip_count -= 1
-                continue
-            for b in multicol_row[i+1:]:
-                if b:
-                    skip_count += 1
-                else:
-                    break
-            if skip_count:
-                tmp.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
-                            .format(
-                                ncol=skip_count+1,
-                                fmt=self.multicolumn_format,
-                                txt=row[i].strip()))
-                if row[i].strip('{{}}'):
-                    bottom_borders.append("\cmidrule(l){{{i:d}-{n:d}}}"
-                                          .format(i=i+1,n=i+1+skip_count))
+        # make list of each individual entry and count their occurences
+        # only occurences that are after each other counts towards
+        # multicolumn. Remember that the 'sparsify' option is False ;)
+        occurences = []
+        for c in row[ilevels:]:
+            c = c.strip()
+            if not occurences: # occurences is empty first
+                occurences.append([c,1])
+            elif occurences[-1][0] == c:
+                occurences[-1][1] += 1
             else:
-                tmp.append(row[i].strip())
+                occurences.append([c,1])
+        # construct row that is going to be LaTeXified
+        cborders = []
+        for c, n in occurences:
+            # if we have multicolumn
+            if c and n > 1:
+                row2.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
+                            .format(ncol=n,fmt=self.multicolumn_format,txt=c))
+                # track the bottom borders that are going to be put under
+                # the multicolumns
+                cborders.append("\cmidrule(l){{{i:d}-{n:d}}}"
+                                      .format(i=len(row2),n=len(row2)-1+n))
+            else:
+                # just put the string or n times ''
+                row2 += [c] * n
 
-        return (tmp, bottom_borders)
+        return (row2, cborders)
 
     def _format_multirow(self, row, ilevels, i, rows):
         r"""

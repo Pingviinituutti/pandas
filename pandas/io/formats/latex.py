@@ -153,15 +153,17 @@ class LatexFormatter(TableFormatter):
                 crow = ['\\textbf{{{x}}}'.format(x=x)
                         if j < ilevels and x.strip() not in ['', '{}'] else x
                         for j, x in enumerate(crow)]
+            cborders = []
             if i < clevels and self.fmt.header and self.multicolumn:
                 # sum up columns to multicolumns
-                crow = self._format_multicolumn(crow, ilevels)
+                crow, cborders = self._format_multicolumn(crow, ilevels)
             if (i >= nlevels and self.fmt.index and self.multirow and
                     ilevels > 1):
                 # sum up rows to multirows
                 crow = self._format_multirow(crow, ilevels, i, strrows)
             buf.write(' & '.join(crow))
-            buf.write(' \\\\\n')
+            buf.write(' \\\\ {borders}\n'
+                      .format(borders=' '.join(cborders)))
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 

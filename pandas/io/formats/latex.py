@@ -181,29 +181,32 @@ class LatexFormatter(TableFormatter):
         ncol = 1
         coltext = ''
 
-        def append_col():
-            # write multicolumn if needed
-            if ncol > 1:
-                row2.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
-                            .format(ncol=ncol, fmt=self.multicolumn_format,
-                                    txt=coltext.strip()))
-            # don't modify where not needed
+        multicol_row = [(len(c) > 0 and len(c.strip()) == 0) for c in row]
+        tmp = []
+        skip_count = 0
+        bottom_borders = []
+        for i, mcol in enumerate(multicol_row):
+            if skip_count:
+                skip_count -= 1
+                continue
+            for b in multicol_row[i+1:]:
+                if b:
+                    skip_count += 1
+                else:
+                    break
+            if skip_count:
+                tmp.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
+                            .format(
+                                ncol=skip_count+1,
+                                fmt=self.multicolumn_format,
+                                txt=row[i].strip()))
+                if row[i].strip('{{}}'):
+                    bottom_borders.append("\cmidrule(l){{{i:d}-{n:d}}}"
+                                          .format(i=i+1,n=i+1+skip_count))
             else:
-                row2.append(coltext)
-        for c in row[ilevels:]:
-            # if next col has text, write the previous
-            if c.strip():
-                if coltext:
-                    append_col()
-                coltext = c
-                ncol = 1
-            # if not, add it to the previous multicolumn
-            else:
-                ncol += 1
-        # write last column name
-        if coltext:
-            append_col()
-        return row2
+                tmp.append(row[i].strip())
+
+        return (tmp, bottom_borders)
 
     def _format_multirow(self, row, ilevels, i, rows):
         r"""

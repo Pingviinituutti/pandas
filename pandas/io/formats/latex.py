@@ -161,9 +161,11 @@ class LatexFormatter(TableFormatter):
                     ilevels > 1):
                 # sum up rows to multirows
                 crow = self._format_multirow(crow, ilevels, i, strrows)
-            buf.write(' & '.join(crow))
-            buf.write(' \\\\ {borders}\n'
-                      .format(borders=' '.join(cborders)))
+            buf.write('\\\\')
+            if i < (clevels - 1):
+                # only print bottom border for rows above last header row
+                buf.write('{borders}'.format(borders=' '.join(cborders)))
+            buf.write('\n')
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
